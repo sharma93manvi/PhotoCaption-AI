@@ -3,6 +3,8 @@ from PIL import Image
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import requests
+import datetime
 
 # Load environment variables
 load_dotenv()
@@ -60,6 +62,37 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Function to fetch usage
+def get_openai_usage():
+    # Dates in ISO format for current month
+    today = datetime.date.today()
+    start_date = today.replace(day=1).isoformat()
+    end_date = today.isoformat()
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"
+    }
+
+    try:
+        response = requests.get(
+             f"https://api.openai.com/v1/dashboard/billing/usage?start_date={start_date}&end_date={end_date}",
+            headers=headers
+        )
+        if response.status_code == 200:
+            usage_data = response.json()
+            total_usage = usage_data["total usage"] / 100.0  # Convert cents to USD
+            return f"${total_usage:.2f} used this month"
+    
+        else:
+            return "Unable to fetch Usage"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# Display Usage in Sidebar
+st.sidebar.markdown("### 🔒 OpenAI API Usage")
+st.sidebar.info(get_openai_usage())
+
 # App title
 st.title("📸 Photo Caption AI")
 st.markdown("Effortless, aesthetic captions for your stunning shots.")
@@ -105,5 +138,6 @@ if uploaded_file is not None:
                     st.markdown(f"### ✨ {caption}")
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
+        
 else:
         st.info("👆 Start by uploading a photo.")
