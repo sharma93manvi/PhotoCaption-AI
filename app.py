@@ -90,8 +90,8 @@ def get_openai_usage():
         return f"Error: {str(e)}"
 
 # Display Usage in Sidebar
-st.sidebar.markdown("### 🔒 OpenAI API Usage")
-st.sidebar.info(get_openai_usage())
+# st.sidebar.markdown("### 🔒 OpenAI API Usage")
+# st.sidebar.info(get_openai_usage())
 
 # App title
 st.title("📸 Photo Caption AI")
@@ -109,6 +109,17 @@ if uploaded_file is not None:
         st.image(image, caption="Uploaded Image", use_container_width=True) # Show the image
 
     with col2: 
+
+        #Style Selection
+        style = st.selectbox(
+            "✨ Choose your caption style",
+            ["Romantic", "Poetic", "Funny", "Short & Punchy", "Professional", "Custom"]
+        )
+
+        custom_style=""
+        if style == "Custom":
+            custom_style = st.text_input("Describe your custom style", placeholder="e.g., Minimal and soulful...")
+
         shoot_type = st.text_input(
             "📸 Describe the shoot (optional)",
             placeholder="e.g., Golden hour couple shoot in Vancouver",
@@ -118,8 +129,18 @@ if uploaded_file is not None:
         if st.button("Generate Caption"):
             with st.spinner("Generating Caption..."):
 
+                # Style based Instructions
+                style_instructions = {
+                    "Romantic": "Make it heartfelt, dreamy, and romantic.",
+                    "Poetic": "Use vivid imagery and poetic language.",
+                    "Funny": "Add wit, cleverness, and humor.",
+                    "Short & Punchy": "Keep it short, bold, and catchy for Instagram.",
+                    "Professional": "Keep it clean, modern, and appropriate for portfolio or branding.",
+                    "Custom": custom_style
+                }
+
                 # Create the prompt
-                prompt = f"""You are a creative, poetic social media expert. Write a short, engaging, Instagram-style caption based on this description:'{shoot_type}'.Keep it modern, punchy & emotional."""
+                prompt = f"""You are a creative social media expert. Write a {style.lower()} Instagram-style caption for this photoshoot description:'{shoot_type}'.{style_instructions.get(style, "")} Keep it modern, punchy & emotional."""
 
                 # Optional: encode image to base64 or describe via tags (future)
                 # For now, hardcoded caption generation prompt
