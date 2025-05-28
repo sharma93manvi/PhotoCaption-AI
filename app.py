@@ -217,14 +217,32 @@ if uploaded_file is not None:
 
                     # Add download button
                     st.download_button(
-                        label="💾 Download Caption as .txt",
+                        label="💾 Download Caption as .txt (Caption will disappear after download)",
                         data=caption,
                         file_name="photo_caption.txt",
                         mime="text/plain"
                     )
 
+                    # Rate Caption
+                    st.markdown("#### How do you feel about this caption?")
+                    feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
+
+                    with feedback_col1:
+                        if st.button("😍 Love it"):
+                            st.success("Thanks for your feedback! 💖")
+
+                    with feedback_col2:
+                        if st.button("🙂 It’s okay"):
+                            st.info("Noted! Thanks for sharing. 👍")
+
+                    with feedback_col3:
+                        if st.button("👎 Not good"):
+                            st.warning("Got it! We’ll try to do better next time. 🙏")
+
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
+
+                
                 
 else:
         st.info("👆 Start by uploading a photo.")
