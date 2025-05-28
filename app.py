@@ -81,7 +81,7 @@ if uploaded_file is not None:
             placeholder="e.g., Golden hour couple shoot in Vancouver",
         )
 
-        # Optionally convert image to description (this part is placeholder)
+        # Optionally convert image to description (this part is placeholder)    
         if st.button("Generate Caption"):
             with st.spinner("Generating Caption..."):
 
