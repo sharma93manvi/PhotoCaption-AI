@@ -143,6 +143,20 @@ if uploaded_file is not None:
             placeholder="e.g., Golden hour couple shoot in Vancouver",
         )
 
+        # Style based Instructions
+        style_instructions = {
+            "Romantic": "Make it heartfelt, dreamy, and romantic.",
+            "Poetic": "Use vivid imagery and poetic language.",
+            "Funny": "Add wit, cleverness, and humor.",
+            "Short & Punchy": "Keep it short, bold, and catchy for Instagram.",
+            "Professional": "Keep it clean, modern, and appropriate for portfolio or branding.",
+            "Custom": custom_style
+        }
+
+       # Create the prompt
+        prompt = f"""You are a creative social media expert. Write a {style.lower()} Instagram-style caption for this photoshoot description:'{shoot_type}'.{style_instructions.get(style, "")} Keep it modern, punchy & emotional."""
+
+
         # Convert image to description
         if st.button("Generate Caption"):
             with st.spinner("Generating Caption..."):
@@ -182,7 +196,7 @@ if uploaded_file is not None:
                         messages.append({"role": "user", "content": style_instructions})
                     elif shoot_type:    
                         messages.append({"role": "user", "content": f"This was a shoot described as: '{shoot_type}'"})
-                        
+
                     # Make GPT-4o call
                     response = client.chat.completions.create(
                         # model="gpt-3.5-turbo", 
@@ -194,25 +208,20 @@ if uploaded_file is not None:
                     st.success("Caption Generated!")
                     st.markdown(f"### ✨ {caption}")
 
+                    # Caption Copy Button
+                    st.code(caption, language="markdown")
+                    st.button("📋 Copy to Clipboard")
+
+                    # for easy manual copy
+                    st.text_area(caption)
+
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
                 
                 
                 
                 
-                # Style based Instructions
-                style_instructions = {
-                    "Romantic": "Make it heartfelt, dreamy, and romantic.",
-                    "Poetic": "Use vivid imagery and poetic language.",
-                    "Funny": "Add wit, cleverness, and humor.",
-                    "Short & Punchy": "Keep it short, bold, and catchy for Instagram.",
-                    "Professional": "Keep it clean, modern, and appropriate for portfolio or branding.",
-                    "Custom": custom_style
-                }
-
-                # Create the prompt
-                prompt = f"""You are a creative social media expert. Write a {style.lower()} Instagram-style caption for this photoshoot description:'{shoot_type}'.{style_instructions.get(style, "")} Keep it modern, punchy & emotional."""
-
+             
         
 else:
         st.info("👆 Start by uploading a photo.")
