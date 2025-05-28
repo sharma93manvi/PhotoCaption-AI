@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import requests
 import datetime
 import base64
+import pyperclip
 
 # Load environment variables
 load_dotenv()
@@ -207,21 +208,23 @@ if uploaded_file is not None:
                     caption = response.choices[0].message.content.strip()
                     st.success("Caption Generated!")
                     st.markdown(f"### ✨ {caption}")
+                    st.text_area("Your Caption", caption, height=100)
 
-                    # Caption Copy Button
-                    st.code(caption, language="markdown")
-                    st.button("📋 Copy to Clipboard")
+                    # Copy to clipboard
+                    if st.button("📋 Copy to Clipboard"):
+                        pyperclip.copy(caption)
+                        st.success("✔️ Copied to clipboard!")
 
-                    # for easy manual copy
-                    st.text_area(caption)
+                    # Add download button
+                    st.download_button(
+                        label="💾 Download Caption as .txt",
+                        data=caption,
+                        file_name="photo_caption.txt",
+                        mime="text/plain"
+                    )
 
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
                 
-                
-                
-                
-             
-        
 else:
         st.info("👆 Start by uploading a photo.")
