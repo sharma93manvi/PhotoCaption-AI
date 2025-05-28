@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import datetime
+import base64
 
 # Load environment variables
 load_dotenv()
@@ -12,6 +13,10 @@ OpenAI.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize OpenAI client with API key
 client = OpenAI(api_key=OpenAI.api_key)
+
+# models = client.models.list()
+# for model in models.data:
+    # print (model.id)
 
 if not OpenAI.api_key:
     st.error("⚠️ OPENAI_API_KEY not found in environment.")
@@ -93,6 +98,13 @@ def get_openai_usage():
 # st.sidebar.markdown("### 🔒 OpenAI API Usage")
 # st.sidebar.info(get_openai_usage())
 
+def image_to_base64(image):
+    from io import BytesIO
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
+
 # App title
 st.title("📸 Photo Caption AI")
 st.markdown("Effortless, aesthetic captions for your stunning shots.")
@@ -110,10 +122,16 @@ if uploaded_file is not None:
 
     with col2: 
 
+        # Changes to Make
+        # 	1.	Switch model to gpt-4o
+	    #   2.	Pass image as input to gpt-4o
+	    #   3.	Auto-detect style if style == "Auto"
+	    #   4.	Generate captions using both image and optional text prompt
+
         #Style Selection
         style = st.selectbox(
             "✨ Choose your caption style",
-            ["Romantic", "Poetic", "Funny", "Short & Punchy", "Professional", "Custom"]
+            ["Auto","Romantic", "Poetic", "Funny", "Short & Punchy", "Professional", "Custom"]
         )
 
         custom_style=""
@@ -125,10 +143,63 @@ if uploaded_file is not None:
             placeholder="e.g., Golden hour couple shoot in Vancouver",
         )
 
-        # Optionally convert image to description (this part is placeholder)    
+        # Convert image to description
         if st.button("Generate Caption"):
             with st.spinner("Generating Caption..."):
 
+                # Call OpenAI API - Use GPT to generate a creative caption.
+                try:
+                    # Encode image to base64 
+                    base64_image = image_to_base64(image)
+
+                    messages=[
+                            {
+                                "role": "system", 
+                                "content": "You are a creative caption generator for photographers on Social Media. Keep it modern, catchy, and emotionally engaging."
+                            },
+                            {
+                                "role": "user", 
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Generate an Instagram-style caption."
+                                    },
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:image/jpeg;base64,{base64_image}"
+                                        }
+                                    }
+                                ]
+                            }
+                    ]
+                    # Add style & shoot type if available
+                    if style != "Auto":
+                        choosen_style = custom_style if style == "Custom" else style
+                        style_instructions = f"\nUse a {choosen_style.lower()} tone."
+                        if shoot_type:
+                            style_instructions += f" This was a shoot described as: '{shoot_type}'"
+                        messages.append({"role": "user", "content": style_instructions})
+                    elif shoot_type:    
+                        messages.append({"role": "user", "content": f"This was a shoot described as: '{shoot_type}'"})
+                        
+                    # Make GPT-4o call
+                    response = client.chat.completions.create(
+                        # model="gpt-3.5-turbo", 
+                        model="gpt-4o", 
+                        messages = messages
+                    )
+
+                    caption = response.choices[0].message.content.strip()
+                    st.success("Caption Generated!")
+                    st.markdown(f"### ✨ {caption}")
+
+                except Exception as e:
+                    st.error(f"🚨 Error generating caption: {str(e)}")
+                
+                
+                
+                
                 # Style based Instructions
                 style_instructions = {
                     "Romantic": "Make it heartfelt, dreamy, and romantic.",
@@ -142,23 +213,6 @@ if uploaded_file is not None:
                 # Create the prompt
                 prompt = f"""You are a creative social media expert. Write a {style.lower()} Instagram-style caption for this photoshoot description:'{shoot_type}'.{style_instructions.get(style, "")} Keep it modern, punchy & emotional."""
 
-                # Optional: encode image to base64 or describe via tags (future)
-                # For now, hardcoded caption generation prompt
-
-                # Call OpenAI API - Use GPT to generate a creative caption.
-                try:
-                    response = client.chat.completions.create(
-                        model="gpt-3.5-turbo", 
-                        messages=[
-                            {"role": "system", "content": "You are a creative caption generator for photographers."},
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    caption = response.choices[0].message.content.strip()
-                    st.success("Caption Generated!")
-                    st.markdown(f"### ✨ {caption}")
-                except Exception as e:
-                    st.error(f"🚨 Error generating caption: {str(e)}")
         
 else:
         st.info("👆 Start by uploading a photo.")
