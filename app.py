@@ -226,16 +226,32 @@ if uploaded_file is not None:
                     st.markdown("#### How do you feel about this caption?")
                     feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
 
+                    if "feedback_given" not in st.session_state:
+                        st.session_state.feedback_given = False
+                        st.session_state.feedback_value = None
+
                     with feedback_col1:
                         if st.button("😍"):
-                            st.success("Thanks for your feedback! 💖")
+                            st.session_state.feedback_given = True
+                            st.session_state.feedback_value = "love"
 
                     with feedback_col2:
                         if st.button("🙂"):
-                            st.info("Noted! Thanks for sharing. 👍")
+                            st.session_state.feedback_given = True
+                            st.session_state.feedback_value = "okay"
 
                     with feedback_col3:
                         if st.button("👎"):
+                            st.session_state.feedback_given = True
+                            st.session_state.feedback_value = "dislike"
+
+                    # Show response after feedback is selected
+                    if st.session_state.feedback_given:
+                        if st.session_state.feedback_value == "love":
+                            st.success("Thanks for your feedback! 💖")
+                        elif st.session_state.feedback_value == "okay":
+                            st.info("Noted! Thanks for sharing. 👍")
+                        elif st.session_state.feedback_value == "dislike":
                             st.warning("Got it! We’ll try to do better next time. 🙏")
 
                 except Exception as e:
