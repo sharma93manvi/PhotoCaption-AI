@@ -266,14 +266,18 @@ if uploaded_file is not None:
                                 messages=[
                                     {"role": "system", "content": "You are a creative caption generator for photographers."},
                                     {"role": "user", "content": prompt}
-                ]
+                                ]
                             )
                             new_caption = response.choices[0].message.content.strip()
                             st.session_state.caption = new_caption
                             st.experimental_rerun()
+
                         except Exception as e:
                             st.error(f"🚨 Error generating caption: {str(e)}")
 
+                if "caption" in st.session_state:
+                    st.markdown(f"### 📸 Caption: *{st.session_state.caption}*")
+                    
                 # Add download button
                 st.download_button(
                     label="💾 Download Caption as .txt",
