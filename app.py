@@ -208,41 +208,62 @@ if uploaded_file is not None:
                     caption = response.choices[0].message.content.strip()
                     st.success("Caption Generated!")
                     st.markdown(f"### ✨ {caption}")
-                    st.text_area("Your Caption", caption, height=100)
+
+                    # Store caption in session state so we can regenerate without reloading everything
+                    if "caption" not in st.session_state:
+                        st.session_state.caption = caption
+                    else:
+                        st.session_state.caption = caption
+                     
+                    # st.text_area("Your Caption", caption, height=100)
 
                     # Copy to clipboard
-                    if st.button("📋 Copy to Clipboard"):
-                        pyperclip.copy(caption)
-                        st.success("✔️ Copied to clipboard!")
-
-                    # Add download button
-                    st.download_button(
-                        label="💾 Download Caption as .txt (Caption will disappear after download)",
-                        data=caption,
-                        file_name="photo_caption.txt",
-                        mime="text/plain"
-                    )
+                    # if st.button("📋 Copy to Clipboard"):
+                    #     pyperclip.copy(caption)
+                    #     st.success("✔️ Copied to clipboard!")
 
                     # Rate Caption
                     st.markdown("#### How do you feel about this caption?")
                     feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
 
                     with feedback_col1:
-                        if st.button("😍 Love it"):
+                        if st.button("😍"):
                             st.success("Thanks for your feedback! 💖")
 
                     with feedback_col2:
-                        if st.button("🙂 It’s okay"):
+                        if st.button("🙂"):
                             st.info("Noted! Thanks for sharing. 👍")
 
                     with feedback_col3:
-                        if st.button("👎 Not good"):
+                        if st.button("👎"):
                             st.warning("Got it! We’ll try to do better next time. 🙏")
 
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
 
-                
-                
+                # Regenerate Caption Button
+                if st.button("🔄 Regenerate Caption"):
+                    with st.spinner("Re-generating..."):
+                        try:
+                            response = client.chat.completions.create(
+                                model="gpt-4o", 
+                                messages=[
+                                    {"role": "system", "content": "You are a creative caption generator for photographers."},
+                                    {"role": "user", "content": prompt}
+                ]
+                            )
+                            new_caption = response.choices[0].message.content.strip()
+                            st.session_state.caption = new_caption
+                            st.experimental_rerun()
+                        except Exception as e:
+                            st.error(f"🚨 Error generating caption: {str(e)}")
+
+                # Add download button
+                st.download_button(
+                    label="💾 Download Caption as .txt",
+                    data=caption,
+                    file_name="photo_caption.txt",
+                    mime="text/plain"
+                )
 else:
         st.info("👆 Start by uploading a photo.")
