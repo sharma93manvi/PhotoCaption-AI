@@ -64,7 +64,44 @@ st.markdown("""
         border-radius: 8px;
         padding: 10px 24px;
     }
-        
+
+    .emoji-button {
+        background-color: #444;
+        color: white;
+        border: none;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: 0.3s;
+        width: 100%;
+    }
+
+    .emoji-button:hover {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+
+    .love { background-color: #ff69b4; }      /* Pink */
+    .like { background-color: #6fa8dc; }      /* Blue */
+    .dislike { background-color: #f4a460; }   /* Orange */ 
+            
+    .regen-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.7rem 1.5rem;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        transition: 0.3s;
+    }
+    .regen-button:hover {
+        background-color: #45a049;
+        transform: scale(1.03);
+    } 
+            
     </style>
 """, unsafe_allow_html=True)
 
@@ -231,17 +268,17 @@ if uploaded_file is not None:
                         st.session_state.feedback_value = None
 
                     with feedback_col1:
-                        if st.button("😍"):
+                        if st.button("😍", key="love_btn"):
                             st.session_state.feedback_given = True
                             st.session_state.feedback_value = "love"
 
                     with feedback_col2:
-                        if st.button("🙂"):
+                        if st.button("🙂", key="like_btn"):
                             st.session_state.feedback_given = True
                             st.session_state.feedback_value = "okay"
 
                     with feedback_col3:
-                        if st.button("👎"):
+                        if st.button("👎", key="dislike_btn"):
                             st.session_state.feedback_given = True
                             st.session_state.feedback_value = "dislike"
 
@@ -257,8 +294,10 @@ if uploaded_file is not None:
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
 
-                # Regenerate Caption Button
-                if st.button("🔄 Regenerate Caption"):
+                # Custom Regenerate Button with HTML
+                regen_clicked = st.button("🔄 Regenerate Caption", key="regen_button")
+
+                if regen_clicked:
                     with st.spinner("Re-generating..."):
                         try:
                             response = client.chat.completions.create(
@@ -272,12 +311,15 @@ if uploaded_file is not None:
                             st.session_state.caption = new_caption
                             st.experimental_rerun()
 
+                            # Show the caption if available
+                            if "caption" in st.session_state:
+                                st.markdown(f"### 📸 Caption: *{st.session_state.caption}*")
+
                         except Exception as e:
                             st.error(f"🚨 Error generating caption: {str(e)}")
 
-                if "caption" in st.session_state:
-                    st.markdown(f"### 📸 Caption: *{st.session_state.caption}*")
-                    
+                
+
                 # Add download button
                 st.download_button(
                     label="💾 Download Caption as .txt",
@@ -285,5 +327,23 @@ if uploaded_file is not None:
                     file_name="photo_caption.txt",
                     mime="text/plain"
                 )
+
 else:
         st.info("👆 Start by uploading a photo.")
+
+st.markdown(
+    """
+    <div style='position: fixed; bottom: 15px; width: 100%; text-align: center;'>
+        <span style='color: white; font-size: 22px; font-weight: bold;'>
+            © 2025 HappyHungryHues 📸 | 
+            <a href='https://www.instagram.com/happyhungryhues/' target='_blank' style='color: white; text-decoration: underline;'>
+                Instagram
+            </a> |
+            <a href='https://happyhungryhues.mypixieset.com/' target='_blank' style='color: white; text-decoration: underline;'>
+                Website
+            </a>
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
