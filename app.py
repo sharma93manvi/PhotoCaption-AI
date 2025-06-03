@@ -160,12 +160,6 @@ if uploaded_file is not None:
 
     with col2: 
 
-        # Changes to Make
-        # 	1.	Switch model to gpt-4o
-	    #   2.	Pass image as input to gpt-4o
-	    #   3.	Auto-detect style if style == "Auto"
-	    #   4.	Generate captions using both image and optional text prompt
-
         #Style Selection
         style = st.selectbox(
             "✨ Choose your caption style",
@@ -246,84 +240,105 @@ if uploaded_file is not None:
                     st.success("Caption Generated!")
                     st.markdown(f"### ✨ {caption}")
 
-                    # Store caption in session state so we can regenerate without reloading everything
-                    if "caption" not in st.session_state:
-                        st.session_state.caption = caption
-                    else:
-                        st.session_state.caption = caption
-                     
-                    # st.text_area("Your Caption", caption, height=100)
-
-                    # Copy to clipboard
-                    # if st.button("📋 Copy to Clipboard"):
-                    #     pyperclip.copy(caption)
-                    #     st.success("✔️ Copied to clipboard!")
-
-                    # Rate Caption
-                    st.markdown("#### How do you feel about this caption?")
-                    feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
-
-                    if "feedback_given" not in st.session_state:
-                        st.session_state.feedback_given = False
-                        st.session_state.feedback_value = None
-
-                    with feedback_col1:
-                        if st.button("😍", key="love_btn"):
-                            st.session_state.feedback_given = True
-                            st.session_state.feedback_value = "love"
-
-                    with feedback_col2:
-                        if st.button("🙂", key="like_btn"):
-                            st.session_state.feedback_given = True
-                            st.session_state.feedback_value = "okay"
-
-                    with feedback_col3:
-                        if st.button("👎", key="dislike_btn"):
-                            st.session_state.feedback_given = True
-                            st.session_state.feedback_value = "dislike"
-
-                    # Show response after feedback is selected
-                    if st.session_state.feedback_given:
-                        if st.session_state.feedback_value == "love":
-                            st.success("Thanks for your feedback! 💖")
-                        elif st.session_state.feedback_value == "okay":
-                            st.info("Noted! Thanks for sharing. 👍")
-                        elif st.session_state.feedback_value == "dislike":
-                            st.warning("Got it! We’ll try to do better next time. 🙏")
+                    # Store caption and inputs in session state so we can regenerate without reloading everything
+                    st.session_state.caption = caption
+                    st.session_state.image = image
+                    st.session_state.shoot_type = shoot_type
+                    st.session_state.style = style
+                    st.session_state.custom_style = custom_style
 
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
 
-                # Custom Regenerate Button with HTML
-                regen_clicked = st.button("🔄 Regenerate Caption", key="regen_button")
+            # Add visual spacing
+            st.markdown("----")
 
-                if regen_clicked:
+            # Regenerate button section
+            st.markdown("### 🔁 Want a different version?")
+            col_regen, _ = st.columns([1, 3])
+            with col_regen:
+                if st.button("🔁 Regenerate Caption", key="regen_button"):
                     with st.spinner("Re-generating..."):
                         try:
+                            base64_image = image_to_base64(st.session_state.image)
+
+                            messages = [
+                                {
+                                    "role": "system", 
+                                    "content": "You are a creative caption generator for photographers on Social Media. Keep it modern, catchy, and emotionally engaging."
+                                },
+                                {
+                                    "role": "user", 
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Generate an Instagram-style caption."
+                                        },
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": f"data:image/jpeg;base64,{base64_image}"
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+
+                            # Rebuild prompt based on style and shoot type
+                            chosen_style = st.session_state.custom_style if st.session_state.style == "Custom" else st.session_state.style
+                            if st.session_state.style != "Auto":
+                                style_instruction = f"\nUse a {chosen_style.lower()} tone."
+                                if st.session_state.shoot_type:
+                                    style_instruction += f" This was a shoot described as: '{st.session_state.shoot_type}'"
+                                messages.append({"role": "user", "content": style_instruction})
+                            elif st.session_state.shoot_type:
+                                messages.append({"role": "user", "content": f"This was a shoot described as: '{st.session_state.shoot_type}'"})
+
                             response = client.chat.completions.create(
-                                model="gpt-4o", 
-                                messages=[
-                                    {"role": "system", "content": "You are a creative caption generator for photographers."},
-                                    {"role": "user", "content": prompt}
-                                ]
+                                model="gpt-4o",
+                                messages=messages
                             )
-                            new_caption = response.choices[0].message.content.strip()
-                            st.session_state.caption = new_caption
+                            st.session_state.caption = response.choices[0].message.content.strip()
                             st.experimental_rerun()
-
-                            # Show the caption if available
-                            if "caption" in st.session_state:
-                                st.markdown(f"### 📸 Caption: *{st.session_state.caption}*")
-
                         except Exception as e:
                             st.error(f"🚨 Error generating caption: {str(e)}")
 
-                
+            # Feedback section
+            if "caption" in st.session_state and st.session_state.caption:
+                st.markdown("### 💬 How do you feel about this caption?")
+                feedback_col1, feedback_col2, feedback_col3 = st.columns(3)
 
-                # Add download button
+                if "feedback_given" not in st.session_state:
+                    st.session_state.feedback_given = False
+                    st.session_state.feedback_value = None
+
+                with feedback_col1:
+                    if st.button("😍 Love it", key="love_btn"):
+                        st.session_state.feedback_given = True
+                        st.session_state.feedback_value = "love"
+
+                with feedback_col2:
+                    if st.button("🙂 It's okay", key="like_btn"):
+                        st.session_state.feedback_given = True
+                        st.session_state.feedback_value = "okay"
+
+                with feedback_col3:
+                    if st.button("👎 Not great", key="dislike_btn"):
+                        st.session_state.feedback_given = True
+                        st.session_state.feedback_value = "dislike"
+
+                if st.session_state.feedback_given:
+                    if st.session_state.feedback_value == "love":
+                        st.success("Thanks for your feedback! 💖")
+                    elif st.session_state.feedback_value == "okay":
+                        st.info("Noted! Thanks for sharing. 👍")
+                    elif st.session_state.feedback_value == "dislike":
+                        st.warning("Got it! We’ll try to do better next time. 🙏")
+
+                # Add download button for the caption below the feedback section.
                 st.download_button(
                     label="💾 Download Caption as .txt",
-                    data=caption,
+                    data=st.session_state.caption,
                     file_name="photo_caption.txt",
                     mime="text/plain"
                 )
@@ -334,7 +349,7 @@ else:
 st.markdown(
     """
     <div style='position: fixed; bottom: 15px; width: 100%; text-align: center;'>
-        <span style='color: white; font-size: 22px; font-weight: bold;'>
+        <span style='color: white; font-size: 20px; font-weight: bold;'>
             © 2025 HappyHungryHues 📸 | 
             <a href='https://www.instagram.com/happyhungryhues/' target='_blank' style='color: white; text-decoration: underline;'>
                 Instagram
