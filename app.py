@@ -147,8 +147,9 @@ def image_to_base64(image):
 def save_caption_to_db(image_name, shoot_type, style, caption, feedback=None):
     try:
         conn = psycopg2.connect(
-            dbname = "photodb",
-            user=os.getlogin(),
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
             host="localhost",
             port="5432"
         )
@@ -163,12 +164,48 @@ def save_caption_to_db(image_name, shoot_type, style, caption, feedback=None):
     except Exception as e:
         st.error(f"❌ Failed to save to DB: {e}")
         
+def handle_feedback(index, feedback, image_name, shoot_type, style, caption):
+    st.session_state[f"feedback_{index}"] = feedback
+
+    try:
+        save_caption_to_db(
+            image_name=image_name,
+            shoot_type=shoot_type,
+            style=style,
+            caption=caption,
+            feedback=feedback
+        )
+        st.session_state[f"feedback_msg_{index}"] = feedback
+    except Exception as e:
+        st.error(f"Failed to save feedback: {e}")
+
+
 # App title
 st.title("📸 Photo Caption AI")
 st.markdown("Effortless, aesthetic captions for your stunning shots.")
 
 # Upload Image
 uploaded_file = st.file_uploader("📤 Upload an image", type=["jpg", "jpeg", "png"])
+
+if "captions" not in st.session_state:
+    st.session_state.captions = []
+if "feedback_given" not in st.session_state:
+    st.session_state.feedback_given = {}
+
+if "feedback" not in st.session_state:
+    st.session_state.feedback = {}
+
+if "image" not in st.session_state:
+    st.session_state.image = None
+
+if "shoot_type" not in st.session_state:
+    st.session_state.shoot_type = ""
+
+if "style" not in st.session_state:
+    st.session_state.style = ""
+
+if "custom_style" not in st.session_state:
+    st.session_state.custom_style = ""
 
 if uploaded_file is not None:
     # Layout split: Image on Left, controls on right
@@ -282,66 +319,63 @@ if uploaded_file is not None:
                     st.session_state.style = style
                     st.session_state.custom_style = custom_style
 
-                
-
-                    # Show captions from session state if available (on first run or after rerun)
-                    if "captions" in st.session_state:
-                        st.markdown("### ✨ Choose from these caption ideas:")
-
-                        for i, cap in enumerate(st.session_state.captions):
-
-                            st.markdown(f"**Caption {i+1}:**")
-                            st.markdown(f"> {cap}")
-
-                            col_feedback = st.columns([1, 1, 1, 2])
-
-                            with col_feedback[0]:
-                                if st.button("😍", key=f"love_{i}"):
-                                    st.session_state[f"feedback_{i}"] = "love"
-
-                            with col_feedback[1]:
-                                if st.button("🙂", key=f"ok_{i}"):
-                                    st.session_state[f"feedback_{i}"] = "ok"
-
-                            with col_feedback[2]:
-                                if st.button("👎", key=f"dislike_{i}"):
-                                    st.session_state[f"feedback_{i}"] = "dislike"
-
-                            with col_feedback[3]:
-                                st.download_button(
-                                    label="💾 Download",
-                                    data=cap,
-                                    file_name=f"caption_{i+1}.txt",
-                                    mime="text/plain",
-                                    key=f"download_{i}"
-                                )
-
-                            feedback_value = st.session_state.get(f"feedback_{i}", None)
-
-                            save_caption_to_db(
-                                image_name=uploaded_file.name,
-                                shoot_type=st.session_state.shoot_type,
-                                style=st.session_state.style,
-                                caption=cap,
-                                feedback=feedback_value
-                            )
-
-                            # Display feedback message
-                            if feedback_value:
-                                if feedback_value == "love":
-                                    st.success("Thanks! You loved this one 💖")
-                                elif feedback_value == "ok":
-                                    st.info("Marked as okay 👍")
-                                elif feedback_value == "dislike":
-                                    st.warning("Got it. We'll improve next time.")
-
-                            st.markdown("---")
-
-                    else:
-                        st.info("👆 Start by uploading a photo.")
-
                 except Exception as e:
                     st.error(f"🚨 Error generating caption: {str(e)}")
+
+# Show captions from session state if available (on first run or after rerun)
+if "captions" in st.session_state and st.session_state.captions:
+    st.markdown("### ✨ Choose from these caption ideas:")
+
+    for i, cap in enumerate(st.session_state.captions):
+        st.markdown(f"**Caption {i+1}:**")
+        st.markdown(f"> {cap}")
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
+
+        with col1:
+            if st.button("😍", key=f"love_{i}"):
+                st.session_state.feedback[i] = "love"
+
+        with col2:
+            if st.button("🙂", key=f"ok_{i}"):
+                st.session_state.feedback[i] = "ok"
+
+        with col3:
+            if st.button("👎", key=f"dislike_{i}"):
+                st.session_state.feedback[i] = "dislike"
+
+        with col4:
+            st.download_button(
+                label="💾 Download",
+                data=cap,
+                file_name=f"caption_{i+1}.txt",
+                mime="text/plain",
+                key=f"download_{i}"
+            )
+
+        feedback_value = st.session_state.feedback.get(i)
+        already_saved = st.session_state.feedback_given.get(i, False)
+
+        if feedback_value and not already_saved:
+            save_caption_to_db(
+                image_name=uploaded_file.name,
+                shoot_type=st.session_state.shoot_type,
+                style=st.session_state.style,
+                caption=cap,
+                feedback=feedback_value
+            )
+            st.session_state.feedback_given[i] = True
+
+        if feedback_value:
+            if feedback_value == "love":
+                st.success("Thanks! You loved this one 💖")
+            elif feedback_value == "ok":
+                st.info("Marked as okay 👍")
+            elif feedback_value == "dislike":
+                st.warning("Got it. We'll improve next time.")
+
+        st.markdown("---")
+else:
+    st.info("👆 Start by uploading a photo.")
 
 st.markdown(
     """
