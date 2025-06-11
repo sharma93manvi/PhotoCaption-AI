@@ -11,7 +11,8 @@ import psycopg2
 
 # Load environment variables
 load_dotenv()
-OpenAI.api_key = os.getenv("OPENAI_API_KEY")
+# OpenAI.api_key = os.getenv("OPENAI_API_KEY")
+OpenAI.api_key = st.secrets("OPENAI_API_KEY")
 
 # Initialize OpenAI client with API key
 client = OpenAI(api_key=OpenAI.api_key)
@@ -147,9 +148,12 @@ def image_to_base64(image):
 def save_caption_to_db(image_name, shoot_type, style, caption, feedback=None):
     try:
         conn = psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
+            # dbname=os.getenv("DB_NAME"),
+            # user=os.getenv("DB_USER"),
+            # password=os.getenv("DB_PASSWORD"),
+            dbname=st.secrets("DB_NAME"),
+            user=st.secrets("DB_USER"),
+            password=st.secrets("DB_PASSWORD"),
             host="localhost",
             port="5432"
         )
